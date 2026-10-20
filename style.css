@@ -1,0 +1,261 @@
+:root {
+  --bg-color: #000000;
+  --card-bg: #111111;
+  --text-main: #ffffff;
+  --text-sub: #aaaaaa;
+  --border-color: #333333;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: var(--bg-color);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--text-main);
+}
+
+body {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 10px;
+}
+
+.container {
+  width: 100%;
+  max-width: 440px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 10px;
+}
+
+.header-simple {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--card-bg);
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.current-mode-display {
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.menu-btn {
+  background: #222222;
+  color: #ffffff;
+  border: 1px solid var(--border-color);
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.menu-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 100;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.menu-content {
+  background: #1a1a1a;
+  padding: 20px;
+  border-radius: 8px;
+  width: 85%;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid var(--border-color);
+}
+
+.menu-content h3 {
+  margin: 0 0 10px 0;
+  font-size: 15px;
+  text-align: center;
+}
+
+/* メニュー内ボタン中央揃え */
+.menu-content button {
+  background: #2a2a2a;
+  color: #ffffff;
+  border: 1px solid var(--border-color);
+  padding: 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: center;
+}
+
+.menu-content button.close-menu-btn {
+  background: #444444;
+  text-align: center;
+  margin-top: 5px;
+}
+
+/* カメラビューポート */
+.scanner-wrapper {
+  position: relative;
+  width: 100%;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #000000;
+  border: 1px solid var(--border-color);
+}
+
+.scanner-wrapper.scanning {
+  animation: flash 0.1s infinite alternate;
+}
+
+@keyframes flash {
+  0% { border-color: #444; }
+  100% { border-color: #fff; }
+}
+
+.scanner-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2.6 / 1;
+  overflow: hidden;
+  background: #050505;
+}
+
+#reader {
+  width: 100% !important;
+  height: 100% !important;
+  border: none !important;
+}
+
+#reader video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+#reader__scan_region, #reader__dashboard, #reader img, #reader__status_span, #reader div[style*="border"] {
+  display: none !important;
+}
+
+.scanner-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.laser-line-fixed {
+  width: 85%;
+  height: 2px;
+  background-color: #ff3b30;
+  opacity: 0;
+  display: none;
+}
+
+.scanner-wrapper.scanning .laser-line-fixed {
+  opacity: 1;
+  display: block;
+}
+
+.status-overlay-text {
+  position: absolute;
+  bottom: 4px;
+  font-size: 9px;
+  color: #aaa;
+  background: rgba(0,0,0,0.7);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+/* ログ表示エリア（縦幅大きめ） */
+.logs-container {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.log-item {
+  background: var(--card-bg);
+  padding: 14px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 64px;
+  justify-content: center;
+}
+
+.log-item.success { border-left: 4px solid #34c759; }
+.log-item.error { border-left: 4px solid #ff3b30; }
+
+.log-text {
+  word-break: break-all;
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.log-sub {
+  font-size: 11px;
+  color: var(--text-sub);
+}
+
+/* 最下部ボタン */
+.bottom-action-area {
+  flex-shrink: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 2px 0;
+}
+
+.hold-scan-btn {
+  background: #ffffff;
+  color: #000000;
+  border: none;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(255, 255, 255, 0.15);
+  touch-action: manipulation;
+}
+
+.hold-scan-btn:active, .hold-scan-btn.active {
+  background: #999999;
+  transform: scale(0.95);
+}
+
+.camera-icon {
+  stroke: #000000;
+}
