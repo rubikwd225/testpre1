@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>チケット管理スキャナー</title>
+  
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+</head>
+<body>
+
+  <div class="container">
+    <!-- ヘッダーエリア -->
+    <div class="header-simple">
+      <div id="currentModeLabel" class="current-mode-display">モード: 入場</div>
+      <button class="menu-btn" onclick="toggleMenu()">メニュー</button>
+    </div>
+
+    <!-- モード選択メニュー -->
+    <div id="menuModal" class="menu-modal" style="display: none;">
+      <div class="menu-content">
+        <h3>操作モード選択</h3>
+        <button onclick="selectMode('reception', '受付')">受付モード</button>
+        <button onclick="selectMode('entry', '入場')">入場モード</button>
+        <button onclick="selectMode('reentry', '再入場許可')">再入場許可モード</button>
+        <button onclick="selectMode('reset', '初期化')">初期化モード（受付前に戻す）</button>
+        <button class="close-menu-btn" onclick="toggleMenu()">閉じる</button>
+      </div>
+    </div>
+
+    <!-- カメラビューポート（少し絞ってスリムに） -->
+    <div class="scanner-wrapper">
+      <div class="scanner-container">
+        <div id="reader"></div>
+        
+        <div class="scanner-overlay">
+          <div class="laser-line-fixed"></div>
+          <div id="scanStatusOverlay" class="status-overlay-text">HOLD TO SCAN</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ログ表示エリア（初期表示カードなし） -->
+    <div id="logsContainer" class="logs-container"></div>
+
+    <!-- 最下部中央の丸型カメラボタン -->
+    <div class="bottom-action-area">
+      <button id="btnHoldScan" class="hold-scan-btn" aria-label="スキャンボタン">
+        <svg class="camera-icon" viewBox="0 0 24 24" width="26" height="26" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+          <circle cx="12" cy="13" r="4"></circle>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

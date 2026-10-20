@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Firestore 初期データ分割登録ツール</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; line-height: 1.6; background-color: #f8fafc; color: #333; }
+    .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); max-width: 600px; margin: 0 auto; }
+    .btn-group { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
+    button { background: #4f46e5; color: white; border: none; padding: 12px 20px; font-size: 15px; font-weight: bold; border-radius: 8px; cursor: pointer; transition: background 0.2s; }
+    button:hover { background: #4338ca; }
+    button:disabled { background: #cbd5e1; color: #94a3b8; cursor: not-allowed; }
+    .progress-bar-container { background: #e2e8f0; height: 10px; border-radius: 5px; overflow: hidden; margin-top: 15px; }
+    .progress-bar { background: #10b981; height: 100%; width: 0%; transition: width 0.3s; }
+    #log { margin-top: 15px; background: #0f172a; color: #38bdf8; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 13px; max-height: 250px; overflow-y: auto; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>文化祭データ 分割登録ツール</h2>
+    <p>IDの先頭に通し番号を配置したフォーマットでFirebaseに書き込みます。順番にボタンを押してください。</p>
+    
+    <div class="btn-group">
+      <button id="btnSlots">ステップ1: 時間枠マスター（40枠）を登録</button>
+      <button id="btnGeneral" disabled>ステップ2: 一般チケット（1600枚）を登録</button>
+      <button id="btnInvite" disabled>ステップ3: 招待券（200枚）を登録</button>
+    </div>
+
+    <div class="progress-bar-container">
+      <div id="progressBar" class="progress-bar"></div>
+    </div>
+
+    <div id="log">> 準備完了...「ステップ1」を押してください。</div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+    import { getFirestore, writeBatch, doc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+
+    // Firebase設定
+    const firebaseConfig = {
+      apiKey: "AIzaSyBq1IksvMVbqs_yHF9QVvA_UKYxF4befo8",
+      authDomain: "project-hsfs20271.firebaseapp.com",
+      projectId: "project-hsfs20271",
+      storageBucket: "project-hsfs20271.firebasestorage.app",
+      messagingSenderId: "722084381349",
+      appId: "1:722084381349:web:cdddafae5d0b6bb4a7034c",
+      measurementId: "G-H01QPE6NJQ"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const logEl = document.getElementById("log");
+    const progressBar = document.getElementById("progressBar");
+
+    function appendLog(msg) {
+      logEl.innerHTML += `<br>> ${msg}`;
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function setProgress(percent) {
+      progressBar.style.width = `${percent}%`;
+    }
+
+    // ランダム英数字生成
+    function randomStr(len) {
+      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+      let res = "";
+      for (let i = 0; i < len; i++) {
+        res += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return res;
+    }
+
+    // 0埋め4桁 (例: 1 -> "0001")
+    function pad4(num) {
+      return String(num).padStart(4, "0");
+    }
+
+    // 15分刻みの時間枠リスト作成
+    function generateSlots(dayName, startHour, startMin, endHour, endMin) {
+      const slots = [];
+      let current = new Date();
+      current.setHours(startHour, startMin, 0, 0);
+      const end = new Date();
+      end.setHours(endHour, endMin, 0, 0);
+
+      while (current < end) {
+        let sh = String(current.getHours()).padStart(2, "0");
+        let sm = String(current.getMinutes()).padStart(2, "0");
+
+        current.setMinutes(current.getMinutes() + 15);
+
+        let eh = String(current.getHours()).padStart(2, "0");
+        let em = String(current.getMinutes()).padStart(2, "0");
+
+        slots.push({
+          id: `${dayName}_${sh}:${sm}-${eh}:${em}`,
+          timeSlotName: `${sh}:${sm}-${eh}:${em}`,
+          startTimeFormatted: `${sh}${sm}`,
+          day: dayName
+        });
+      }
+      return slots;
+    }
+
+    // 200件ずつの小分けコミット
+    async function commitInChunks(items, collectionName) {
+      const CHUNK_SIZE = 200;
+      const total = items.length;
+
+      for (let i = 0; i < total; i += CHUNK_SIZE) {
+        const batch = writeBatch(db);
+        const chunk = items.slice(i, i + CHUNK_SIZE);
+
+        chunk.forEach(item => {
+          const ref = doc(db, collectionName, item.id);
+          const data = { ...item };
+          delete data.id;
+          batch.set(ref, data);
+        });
+
+        await batch.commit();
+        const currentCount = Math.min(i + CHUNK_SIZE, total);
+        const percent = Math.floor((currentCount / total) * 100);
+        setProgress(percent);
+        appendLog(`[${collectionName}] ${currentCount} / ${total} 件 書き込み完了 (${percent}%)`);
+      }
+    }
+
+    // ステップ1: 時間枠の作成
+    document.getElementById("btnSlots").addEventListener("click", async () => {
+      document.getElementById("btnSlots").disabled = true;
+      setProgress(0);
+      appendLog("時間枠マスターデータを生成中...");
+
+      try {
+        const day1Slots = generateSlots("1日目", 12, 0, 16, 0);
+        const day2Slots = generateSlots("2日目", 9, 30, 15, 30);
+        const allSlots = [...day1Slots, ...day2Slots];
+
+        const slotDocs = allSlots.map(s => ({
+          id: s.id,
+          capacity: 40,
+          remainingGroups: 40,
+          day: s.day,
+          timeSlot: s.timeSlotName
+        }));
+
+        await commitInChunks(slotDocs, "timeSlots");
+        appendLog("✅ 時間枠マスター（40枠）の登録完了！次のボタンを押してください。");
+        document.getElementById("btnGeneral").disabled = false;
+      } catch (err) {
+        appendLog(`❌ エラー: ${err.message}`);
+        document.getElementById("btnSlots").disabled = false;
+      }
+    });
+
+    // ステップ2: 一般チケット（先頭に0001〜）
+    document.getElementById("btnGeneral").addEventListener("click", async () => {
+      document.getElementById("btnGeneral").disabled = true;
+      setProgress(0);
+      appendLog("一般チケット（1600枚）を生成中...");
+
+      try {
+        const day1Slots = generateSlots("1日目", 12, 0, 16, 0);
+        const day2Slots = generateSlots("2日目", 9, 30, 15, 30);
+        const allSlots = [...day1Slots, ...day2Slots];
+
+        let ticketCountTotal = 0;
+        const generalTickets = [];
+
+        for (const slot of allSlots) {
+          for (let i = 1; i <= 40; i++) {
+            ticketCountTotal++;
+            // ID構造: [4桁通し番号] + [12文字ランダム] + [4桁時間(HHMM)] + [5文字ランダム]
+            const id = pad4(ticketCountTotal) + randomStr(12) + slot.startTimeFormatted + randomStr(5);
+
+            generalTickets.push({
+              id: id,
+              status: "unused",
+              timeSlot: slot.id,
+              type: "general",
+              ticketNumber: ticketCountTotal
+            });
+          }
+        }
+
+        await commitInChunks(generalTickets, "tickets");
+        appendLog("✅ 一般チケット（1,600枚）の登録完了！次のボタンを押してください。");
+        document.getElementById("btnInvite").disabled = false;
+      } catch (err) {
+        appendLog(`❌ エラー: ${err.message}`);
+        document.getElementById("btnGeneral").disabled = false;
+      }
+    });
+
+    // ステップ3: 招待券（先頭にSP0001〜）
+    document.getElementById("btnInvite").addEventListener("click", async () => {
+      document.getElementById("btnInvite").disabled = true;
+      setProgress(0);
+      appendLog("招待券（200枚）を生成中...");
+
+      try {
+        const invitationTickets = [];
+        for (let i = 1; i <= 200; i++) {
+          // ID構造: SP + [4桁通し番号] + [19文字ランダム]
+          const id = "SP" + pad4(i) + randomStr(19);
+
+          invitationTickets.push({
+            id: id,
+            status: "unused",
+            timeSlot: "free",
+            type: "invitation",
+            ticketNumber: i
+          });
+        }
+
+        await commitInChunks(invitationTickets, "tickets");
+        appendLog("🎉 すべてのデータ（時間枠・一般チケット・招待券）の初期登録が完了しました！");
+      } catch (err) {
+        appendLog(`❌ エラー: ${err.message}`);
+        document.getElementById("btnInvite").disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
